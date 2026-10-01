@@ -58,7 +58,9 @@ MEDUSA_COOLDOWN = 25
 BAT_AIMBOT_SPEED    = 58
 LAGGER_AIMBOT_SPEED = 58
 
--- Auto speed: Lagger Aimbot Spd while Lagger / Lagger Carry is on, else Bat Aimbot Speed
+-- Auto speed (live, read every frame by V1 / V2 / Bypass):
+--   Normal or Carry          -> Bat Aimbot Speed
+--   Lagger or Lagger Carry   -> Lagger Aimbot Spd
 function getAimbotSpeed()
     if laggerToggled or laggerCarryToggled then return LAGGER_AIMBOT_SPEED end
     local wasLagger = _G._AdaptAutoCarryWasLagger
@@ -10970,8 +10972,12 @@ do
 
     -- Lets getAimbotSpeed() see the real lagger mode while Auto Carry has it overridden
     _G._AdaptAutoCarryWasLagger = function()
-        return _acActive and _acPrevious ~= nil
-            and (_acPrevious.laggerToggled or _acPrevious.laggerCarryToggled) or false
+        if not (_acActive and _acPrevious ~= nil) then return false end
+        -- Only trust the saved family while Auto Carry's own forced state (carry on, no lagger
+        -- flag) is still in effect. If the player switched mode by hand, the live flags are
+        -- the truth, so Normal / Carry always gets Bat Aimbot Speed again.
+        if (not speedMode) or laggerToggled or laggerCarryToggled then return false end
+        return (_acPrevious.laggerToggled or _acPrevious.laggerCarryToggled) and true or false
     end
 
     -- Called by Adapt internals to re-check current state without restarting
